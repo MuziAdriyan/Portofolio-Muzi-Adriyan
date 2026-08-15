@@ -1001,7 +1001,7 @@ button{font-family:inherit; cursor:pointer;}
 </div>
 
 <script>
-(function(){
+((function(){
   "use strict";
 
   /* ============ THEME ============ */
@@ -1095,13 +1095,15 @@ button{font-family:inherit; cursor:pointer;}
   /* ============ PROFILE IMAGE FALLBACK ============ */
   var profileImg = document.getElementById('profileImg');
   var profileFallback = document.getElementById('profileFallback');
-  var testImg = new Image();
-  testImg.onload = function(){
-    profileImg.style.display = 'block';
-    profileFallback.style.display = 'none';
-  };
-  testImg.onerror = function(){ /* keep fallback visible */ };
-  testImg.src = profileImg.getAttribute('src');
+  if(profileImg){
+    var testImg = new Image();
+    testImg.onload = function(){
+      profileImg.style.display = 'block';
+      if(profileFallback) profileFallback.style.display = 'none';
+    };
+    testImg.onerror = function(){};
+    testImg.src = profileImg.getAttribute('src');
+  }
 
   /* ============ COUNTER ANIMATION ============ */
   var counted = false;
@@ -1125,7 +1127,7 @@ button{font-family:inherit; cursor:pointer;}
   var counterObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(e){ if(e.isIntersecting) runCounter(); });
   }, {threshold:.6});
-  if(counterEl) counterObserver.observe(counterEl.closest('.stats-section'));
+  if(counterEl && counterEl.closest('.stats-section')) counterObserver.observe(counterEl.closest('.stats-section'));
                                                           
 //=== DATA PASAR REAL-TIME ===
 let marketData = [
@@ -1136,6 +1138,42 @@ let marketData = [
   {sym:"GOLD", cat:"Commodity", price:"$ --", change:"--%", up:true, id:"emas", jenis:"komoditas"},
   {sym:"USD / IDR", cat:"Forex", price:"Rp --", change:"--%", up:false, id:"USDIDR", jenis:"forex"}
 ];
+
+// === TAMPILKAN ULANG SEMUA HARGA ===
+function tampilkanUlangMarket() {
+  const kontainer = document.getElementById("marketGrid");
+  if (!kontainer) return;
+  
+  kontainer.innerHTML = "";
+
+  marketData.forEach(function(m, idx){
+    const warna = m.up ? "#10b981" : "#ef4444";
+    const kartu = document.createElement('div');
+    kartu.className = 'market-card';
+    
+    function sparkPath(seed, up){
+      var pts = [];
+      var v = 20 + ((seed || idx) % 5) * 3;
+      for(var i=0;i<24;i++){
+        v += Math.sin((i+(seed||idx))*0.7) * 4 + (up ? 0.6 : -0.6);
+        v = Math.max(4, Math.min(30, v));
+        pts.push(v);
+      }
+      var w = 220, h = 34, step = w / (pts.length-1);
+      return pts.map(function(p,i){ 
+        return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); 
+      }).join(" ");
+    }
+
+    kartu.innerHTML =
+      '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
+      '<div class="market-price">'+m.price+'</div>'+
+      '<div class="market-change '+(m.up?'up':'down')+'" style="color:'+warna+'">'+(m.up?'▲':'▼')+' '+m.change+'</div>'+
+      '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(idx, m.up)+'" fill="none" stroke="'+warna+'" stroke-width="1.4"/></svg></div>';
+    
+    kontainer.appendChild(kartu);
+  });
+}
 
 // === AMBIL SEMUA HARGA REAL-TIME ===
 async function ambilHargaKripto() {
@@ -1174,7 +1212,7 @@ async function ambilHargaKripto() {
       kurs.up = persen >= 0;
     }
 
-    // 3. Ambil Harga Emas (menggunakan data CoinGecko)
+    // 3. Ambil Harga Emas
     const resEmas = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=gold&vs_currencies=usd&include_24hr_change=true");
     const dataEmas = await resEmas.json();
     const emas = marketData.find(m => m.id === "emas");
@@ -1190,46 +1228,6 @@ async function ambilHargaKripto() {
   } catch (err) {
     console.log("Gagal ambil harga:", err);
   }
-}
-
-// Jalankan saat halaman dibuka + perbarui tiap 3 detik
-ambilHargaKripto();
-setInterval(ambilHargaKripto, 3000);
-
-  // === TAMPILKAN ULANG SEMUA HARGA ===
-function tampilkanUlangMarket() {
-  const kontainer = document.getElementById("marketGrid");
-  if (!kontainer) return;
-  
-  kontainer.innerHTML = "";
-
-  marketData.forEach(function(m, idx){
-    const warna = m.up ? "#10b981" : "#ef4444";
-    const kartu = document.createElement('div');
-    kartu.className = 'market-card';
-    
-    function sparkPath(seed, up){
-      var pts = [];
-      var v = 20 + ((seed || idx) % 5) * 3;
-      for(var i=0;i<24;i++){
-        v += Math.sin((i+(seed||idx))*0.7) * 4 + (up ? 0.6 : -0.6);
-        v = Math.max(4, Math.min(30, v));
-        pts.push(v);
-      }
-      var w = 220, h = 34, step = w / (pts.length-1);
-      return pts.map(function(p,i){ 
-        return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); 
-      }).join(" ");
-    }
-
-    kartu.innerHTML =
-      '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
-      '<div class="market-price">'+m.price+'</div>'+
-      '<div class="market-change '+(m.up?'up':'down')+'" style="color:'+warna+'">'+(m.up?'▲':'▼')+' '+m.change+'</div>'+
-      '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(idx, m.up)+'" fill="none" stroke="'+warna+'" stroke-width="1.4"/></svg></div>';
-    
-    kontainer.appendChild(kartu);
-  });
 }
 
 // === SIMULASI SAHAM REALISTIS ===
@@ -1260,17 +1258,19 @@ function gerakSaham() {
   tampilkanUlangMarket();
 }
 
-// Jalankan saham tiap 3 detik
+// Jalankan semua
+ambilHargaKripto();
+setInterval(ambilHargaKripto, 3000);
 setInterval(gerakSaham, 3000);
 
-  /* live clock */
+  /* LIVE CLOCK */
   var clockOut = document.getElementById('clockOut');
   function tickClock(){
     var d = new Date();
     var hh = String(d.getHours()).padStart(2,'0');
     var mm = String(d.getMinutes()).padStart(2,'0');
     var ss = String(d.getSeconds()).padStart(2,'0');
-    clockOut.textContent = hh+':'+mm+':'+ss;
+    if(clockOut) clockOut.textContent = hh+':'+mm+':'+ss;
   }
   tickClock();
   setInterval(tickClock, 1000);
@@ -1297,6 +1297,7 @@ setInterval(gerakSaham, 3000);
 
   function drawChart(type){
     var svg = document.getElementById('mainChart');
+    if(!svg) return;
     var W = 900, H = 380, padL = 44, padR = 16, padT = 16, padB = 70;
     var plotW = W - padL - padR, plotH = H - padT - padB;
     var vals = [];
@@ -1367,7 +1368,6 @@ setInterval(gerakSaham, 3000);
       path.setAttribute('fill','none');
       path.setAttribute('stroke', chartColor);
       path.setAttribute('stroke-width','1.6');
-      path.classList.add('chart-anim-line');
       svg.appendChild(path);
     }
 
@@ -1400,8 +1400,6 @@ setInterval(gerakSaham, 3000);
       t.textContent = label;
       svg.appendChild(t);
     });
-
-    svg.style.color = getComputedStyle(document.body).getPropertyValue('--text');
   }
 
   drawChart('candle');
@@ -1414,25 +1412,14 @@ setInterval(gerakSaham, 3000);
     });
   });
 
-  var chartRevealed = false;
-  var chartObserver = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){
-      if(e.isIntersecting && !chartRevealed){
-        chartRevealed = true;
-        var active = document.querySelector('.chart-tabs button.active');
-        drawChart(active ? active.dataset.chart : 'candle');
-      }
-    });
-  }, {threshold:.3});
-  var chartPanel = document.querySelector('.chart-panel');
-  if(chartPanel) chartObserver.observe(chartPanel);
+  setTimeout(function(){ drawChart('candle'); }, 400);
 
   themeBtns.forEach(function(b){
     b.addEventListener('click', function(){
       setTimeout(function(){
         var active = document.querySelector('.chart-tabs button.active');
         drawChart(active ? active.dataset.chart : 'candle');
-      }, 60);
+      }, 100);
     });
   });
 
@@ -1447,7 +1434,7 @@ setInterval(gerakSaham, 3000);
   var termStarted = false;
 
   function typeTerminal(){
-    if(termStarted) return;
+    if(!termBody || termStarted) return;
     termStarted = true;
     var li = 0;
     function typeLine(){
@@ -1481,11 +1468,13 @@ setInterval(gerakSaham, 3000);
     typeLine();
   }
 
-  var termObserver = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){ if(e.isIntersecting) typeTerminal(); });
-  }, {threshold:.4});
   var termEl = document.querySelector('.terminal');
-  if(termEl) termObserver.observe(termEl);
+  if(termEl){
+    var termObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting) typeTerminal(); });
+    }, {threshold:.4});
+    termObserver.observe(termEl);
+  }
 
   /* ============ PROJECTS ============ */
   var projects = [
@@ -1497,19 +1486,21 @@ setInterval(gerakSaham, 3000);
     {num:"06", name:"APK Project", desc:"Mobile application project.", tech:"Kotlin · Android", status:"Planning"}
   ];
   var projectsGrid = document.getElementById('projectsGrid');
-  projects.forEach(function(p){
-    var card = document.createElement('div');
-    card.className = 'project-card';
-    card.innerHTML =
-      '<div class="project-top"><span class="project-num">'+p.num+'</span><span class="project-status">'+p.status+'</span></div>'+
-      '<div class="project-name">'+p.name+'</div>'+
-      '<p class="project-desc">'+p.desc+'</p>'+
-      '<div class="project-tech">'+p.tech+'</div>'+
-      '<button class="project-view" type="button" data-num="'+p.num+'" data-name="'+p.name+'" data-desc="'+p.desc+'" data-tech="'+p.tech+'" data-status="'+p.status+'">'+
-      'View Project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
-      '</button>';
-    projectsGrid.appendChild(card);
-  });
+  if(projectsGrid){
+    projects.forEach(function(p){
+      var card = document.createElement('div');
+      card.className = 'project-card';
+      card.innerHTML =
+        '<div class="project-top"><span class="project-num">'+p.num+'</span><span class="project-status">'+p.status+'</span></div>'+
+        '<div class="project-name">'+p.name+'</div>'+
+        '<p class="project-desc">'+p.desc+'</p>'+
+        '<div class="project-tech">'+p.tech+'</div>'+
+        '<button class="project-view" type="button" data-num="'+p.num+'" data-name="'+p.name+'" data-desc="'+p.desc+'" data-tech="'+p.tech+'" data-status="'+p.status+'">'+
+        'View Project <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+        '</button>';
+      projectsGrid.appendChild(card);
+    });
+  }
 
   /* ============ PROJECT MODAL ============ */
   var modalOverlay = document.getElementById('modalOverlay');
@@ -1523,22 +1514,25 @@ setInterval(gerakSaham, 3000);
   document.addEventListener('click', function(e){
     var btn = e.target.closest('.project-view');
     if(!btn) return;
-    modalNum.textContent = 'PROJECT / ' + btn.dataset.num;
-    modalTitle.textContent = btn.dataset.name;
-    modalDesc.textContent = btn.dataset.desc;
-    modalTech.textContent = btn.dataset.tech;
-    modalStatus.textContent = btn.dataset.status;
-    modalOverlay.classList.add('open');
+    if(modalNum) modalNum.textContent = 'PROJECT / ' + btn.dataset.num;
+    if(modalTitle) modalTitle.textContent = btn.dataset.name;
+    if(modalDesc) modalDesc.textContent = btn.dataset.desc;
+    if(modalTech) modalTech.textContent = btn.dataset.tech;
+    if(modalStatus) modalStatus.textContent = btn.dataset.status;
+    if(modalOverlay) modalOverlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   });
+  
   function closeModal(){
-    modalOverlay.classList.remove('open');
+    if(modalOverlay) modalOverlay.classList.remove('open');
     document.body.style.overflow = '';
   }
-  modalClose.addEventListener('click', closeModal);
-  modalOverlay.addEventListener('click', function(e){
-    if(e.target === modalOverlay) closeModal();
-  });
+  if(modalClose) modalClose.addEventListener('click', closeModal);
+  if(modalOverlay){
+    modalOverlay.addEventListener('click', function(e){
+      if(e.target === modalOverlay) closeModal();
+    });
+  }
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape') closeModal();
   });
