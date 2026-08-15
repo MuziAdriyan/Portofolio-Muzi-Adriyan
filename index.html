@@ -954,7 +954,7 @@ button{font-family:inherit; cursor:pointer;}
     <h2 class="contact-title">Let's Build<br>Something.</h2>
     <p class="contact-sub">Web · Technology · Digital Business · Market</p>
     <div class="contact-cta">
-      <a href="mailto:Muziadriyan8526@gmail.com.dev" class="btn btn-solid">Let's Talk</a>
+      <a href="Muziadriyan8526@gmail.com.dev" class="btn btn-solid">Let's Talk</a>
       <a href="#projects" class="btn btn-ghost">View Projects</a>
     </div>
     <div class="social-row">
@@ -1125,32 +1125,42 @@ button{font-family:inherit; cursor:pointer;}
   var counterObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(e){ if(e.isIntersecting) runCounter(); });
   }, {threshold:.6});
-  if(counterEl) counterObserver.observe(counterEl.closest('.stats-section'));
-                                                          
-function sparkPath(seed, up){
-  var pts = [];
-  var v = 20 + (seed % 5) * 3;
-  for(var i=0;i<24;i++){
-    v += Math.sin(i+seed)*0.7) * 4 + (up ? 0.6 : -0.6);
-    v = Math.max(4, Math.min(30, v));
-    pts.push(v);
-  }
-  var w = 220, h = 34, step = w / (pts.length-1);
-  var d = pts.map(function(p,i){ return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); });
-  return d;
-}
+  if(counterEl) counterObserver.observe(counterEl.closest('.stats-band'));
 
-var marketGrid = document.getElementById('marketGrid');
-marketData.forEach(function(m){
-  var card = document.createElement('div');
-  card.className = 'market-card';
-  card.innerHTML =
-    '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
-    '<div class="market-price">'+m.price+'</div>'+
-    '<div class="market-change '+(m.up?'up':'down')+'">'+m.change+'</div>'+
-    '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(m.seed,m.up)+'" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>';
-  marketGrid.appendChild(card);
-});
+  /* ============ MARKET WATCH DATA ============ */
+  var marketData = [
+    {sym:"BTC / USD", cat:"BTC / Crypto", price:"$ 64,280.15", change:"+2.34%", up:true, seed:3},
+    {sym:"ETH / USD", cat:"ETH / Crypto", price:"$ 3,142.80", change:"+1.18%", up:true, seed:7},
+    {sym:"NASDAQ", cat:"Technology", price:"17,890.42", change:"-0.42%", up:false, seed:11},
+    {sym:"S&P 500", cat:"Stock Market", price:"5,432.10", change:"+0.65%", up:true, seed:5},
+    {sym:"GOLD", cat:"Commodity", price:"$ 2,378.90", change:"+0.21%", up:true, seed:9},
+    {sym:"USD / IDR", cat:"Forex", price:"Rp 16,120", change:"-0.15%", up:false, seed:13}
+  ];
+
+  function sparkPath(seed, up){
+    var pts = [];
+    var v = 20 + (seed % 5) * 3;
+    for(var i=0;i<24;i++){
+      v += Math.sin((i+seed)*0.7) * 4 + (up ? 0.6 : -0.6);
+      v = Math.max(4, Math.min(30, v));
+      pts.push(v);
+    }
+    var w = 220, h = 34, step = w / (pts.length-1);
+    var d = pts.map(function(p,i){ return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); }).join(" ");
+    return d;
+  }
+
+  var marketGrid = document.getElementById('marketGrid');
+  marketData.forEach(function(m){
+    var card = document.createElement('div');
+    card.className = 'market-card';
+    card.innerHTML =
+      '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
+      '<div class="market-price">'+m.price+'</div>'+
+      '<div class="market-change '+(m.up?'up':'down')+'">'+m.change+' <span style="color:var(--text-dim); font-weight:400;">today</span></div>'+
+      '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(m.seed,m.up)+'" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>';
+    marketGrid.appendChild(card);
+  });
 
   /* live clock */
   var clockOut = document.getElementById('clockOut');
