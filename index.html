@@ -954,7 +954,7 @@ button{font-family:inherit; cursor:pointer;}
     <h2 class="contact-title">Let's Build<br>Something.</h2>
     <p class="contact-sub">Web · Technology · Digital Business · Market</p>
     <div class="contact-cta">
-      <a href="Muziadriyan8526@gmail.com.dev" class="btn btn-solid">Let's Talk</a>
+      <a href="mailto:Muziadriyan8526@gmail.com.dev" class="btn btn-solid">Let's Talk</a>
       <a href="#projects" class="btn btn-ghost">View Projects</a>
     </div>
     <div class="social-row">
@@ -1127,15 +1127,68 @@ button{font-family:inherit; cursor:pointer;}
   }, {threshold:.6});
   if(counterEl) counterObserver.observe(counterEl.closest('.stats-band'));
 
-  /* ============ MARKET WATCH DATA ============ */
-  var marketData = [
-    {sym:"BTC / USD", cat:"BTC / Crypto", price:"$ 64,280.15", change:"+2.34%", up:true, seed:3},
-    {sym:"ETH / USD", cat:"ETH / Crypto", price:"$ 3,142.80", change:"+1.18%", up:true, seed:7},
-    {sym:"NASDAQ", cat:"Technology", price:"17,890.42", change:"-0.42%", up:false, seed:11},
-    {sym:"S&P 500", cat:"Stock Market", price:"5,432.10", change:"+0.65%", up:true, seed:5},
-    {sym:"GOLD", cat:"Commodity", price:"$ 2,378.90", change:"+0.21%", up:true, seed:9},
-    {sym:"USD / IDR", cat:"Forex", price:"Rp 16,120", change:"-0.15%", up:false, seed:13}
-  ];
+  // === DATA PASAR REAL-TIME DARI COINGECKO ===
+let marketData = [
+  {sym:"BTC / USD", cat:"BTC / Crypto", price:"$ --", change:"--%", up:true, seed:3, id:"bitcoin"},
+  {sym:"ETH / USD", cat:"ETH / Crypto", price:"$ --", change:"--%", up:true, seed:7, id:"ethereum"},
+  {sym:"NASDAQ", cat:"Technology", price:"17,890.42", change:"-0.42%", up:false, seed:11},
+  {sym:"S&P 500", cat:"Stock Market", price:"5,432.10", change:"+0.65%", up:true, seed:5},
+  {sym:"GOLD", cat:"Commodity", price:"$ 2,378.90", change:"+0.21%", up:true, seed:9},
+  {sym:"USD / IDR", cat:"Forex", price:"Rp 16,120", change:"-0.15%", up:false, seed:13}
+];
+
+// === AMBIL HARGA REAL-TIME ===
+async function ambilHargaKripto() {
+  try {
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true");
+    const data = await res.json();
+
+    // Update BTC
+    const btc = marketData.find(m => m.id === "bitcoin");
+    if (btc && data.bitcoin) {
+      btc.price = "$ " + data.bitcoin.usd.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+      const persen = data.bitcoin.usd_24h_change;
+      btc.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
+      btc.up = persen >= 0;
+    }
+
+    // Update ETH
+    const eth = marketData.find(m => m.id === "ethereum");
+    if (eth && data.ethereum) {
+      eth.price = "$ " + data.ethereum.usd.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+      const persen = data.ethereum.usd_24h_change;
+      eth.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
+      eth.up = persen >= 0;
+    }
+
+    // Tampilkan ulang harga yang sudah diperbarui
+    tampilkanUlangMarket();
+
+  } catch (err) {
+    console.log("Gagal ambil harga:", err);
+  }
+}
+
+// === TAMPILKAN ULANG SETIAP KARTU HARGA ===
+function tampilkanUlangMarket() {
+  const kontainer = document.getElementById("marketGrid");
+  kontainer.innerHTML = ""; // Hapus yang lama
+
+  marketData.forEach(function(m){
+    const warna = m.up ? "#10b981" : "#ef4444";
+    const kartu = document.createElement('div');
+    kartu.className = 'market-card';
+    kartu.innerHTML =
+      '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
+      '<div class="market-price">'+m.price+'</div>'+
+      '<div class="market-change" style="color:'+warna+'">'+(m.up?'▲ ':'▼ ')+m.change+'</div>';
+    kontainer.appendChild(kartu);
+  });
+}
+
+// Jalankan saat halaman dibuka + perbarui tiap 60 detik
+ambilHargaKripto();
+setInterval(ambilHargaKripto, 60000);
 
   function sparkPath(seed, up){
     var pts = [];
