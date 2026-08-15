@@ -1127,99 +1127,30 @@ button{font-family:inherit; cursor:pointer;}
   }, {threshold:.6});
   if(counterEl) counterObserver.observe(counterEl.closest('.stats-section'));
                                                           
-//=== DATA PASAR REAL-TIME ===
-let marketData = [
-  {sym:"BTC / USD", cat:"BTC / Crypto", price:"$ --", change:"--%", up:true, id:"bitcoin", jenis:"kripto"},
-  {sym:"ETH / USD", cat:"ETH / Crypto", price:"$ --", change:"--%", up:true, id:"ethereum", jenis:"kripto"},
-  {sym:"NASDAQ", cat:"Technology", price:"--", change:"--%", up:false, id:"NASDAQ", jenis:"saham"},
-  {sym:"S&P 500", cat:"Stock Market", price:"--", change:"--%", up:true, id:"GSPC", jenis:"saham"},
-  {sym:"GOLD", cat:"Commodity", price:"$ --", change:"--%", up:true, id:"emas", jenis:"komoditas"},
-  {sym:"USD / IDR", cat:"Forex", price:"Rp --", change:"--%", up:false, id:"USDIDR", jenis:"forex"}
-];
-
-// === AMBIL SEMUA HARGA REAL-TIME ===
-async function ambilHargaKripto() {
-  try {
-    // 1. Ambil Harga Kripto (BTC + ETH) dari CoinGecko
-    const resKripto = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true");
-    const dataKripto = await resKripto.json();
-
-    // Update BTC
-    const btc = marketData.find(m => m.id === "bitcoin");
-    if (btc && dataKripto.bitcoin) {
-      btc.price = "$ " + dataKripto.bitcoin.usd.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
-      const persen = dataKripto.bitcoin.usd_24h_change;
-      btc.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
-      btc.up = persen >= 0;
-    }
-
-    // Update ETH
-    const eth = marketData.find(m => m.id === "ethereum");
-    if (eth && dataKripto.ethereum) {
-      eth.price = "$ " + dataKripto.ethereum.usd.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
-      const persen = dataKripto.ethereum.usd_24h_change;
-      eth.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
-      eth.up = persen >= 0;
-    }
-
-    // 2. Ambil Harga USD/IDR (Kurs Rupiah)
-    const resKurs = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr&include_24hr_change=true");
-    const dataKurs = await resKurs.json();
-    const kurs = marketData.find(m => m.id === "USDIDR");
-    if (kurs && dataKurs.tether) {
-      const harga = Math.round(dataKurs.tether.idr);
-      kurs.price = "Rp " + harga.toLocaleString("id-ID");
-      const persen = dataKurs.tether.idr_24h_change;
-      kurs.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
-      kurs.up = persen >= 0;
-    }
-
-    // 3. Ambil Harga Emas (menggunakan data CoinGecko)
-    const resEmas = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=gold&vs_currencies=usd&include_24hr_change=true");
-    const dataEmas = await resEmas.json();
-    const emas = marketData.find(m => m.id === "emas");
-    if (emas && dataEmas.gold) {
-      emas.price = "$ " + dataEmas.gold.usd.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
-      const persen = dataEmas.gold.usd_24h_change;
-      emas.change = (persen >= 0 ? "+" : "") + persen.toFixed(2) + "%";
-      emas.up = persen >= 0;
-    }
-
-    tampilkanUlangMarket();
-
-  } catch (err) {
-    console.log("Gagal ambil harga:", err);
+function sparkPath(seed, up){
+  var pts = [];
+  var v = 20 + (seed % 5) * 3;
+  for(var i=0;i<24;i++){
+    v += Math.sin(i+seed)*0.7) * 4 + (up ? 0.6 : -0.6);
+    v = Math.max(4, Math.min(30, v));
+    pts.push(v);
   }
+  var w = 220, h = 34, step = w / (pts.length-1);
+  var d = pts.map(function(p,i){ return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); });
+  return d;
 }
 
-// Jalankan saat halaman dibuka + perbarui tiap 3 detik
-ambilHargaKripto();
-setInterval(ambilHargaKripto, 3000);
-
-  function sparkPath(seed, up){
-    var pts = [];
-    var v = 20 + (seed % 5) * 3;
-    for(var i=0;i<24;i++){
-      v += Math.sin((i+seed)*0.7) * 4 + (up ? 0.6 : -0.6);
-      v = Math.max(4, Math.min(30, v));
-      pts.push(v);
-    }
-    var w = 220, h = 34, step = w / (pts.length-1);
-    var d = pts.map(function(p,i){ return (i===0?"M":"L") + (i*step).toFixed(1) + "," + (h-p).toFixed(1); }).join(" ");
-    return d;
-  }
-
-  var marketGrid = document.getElementById('marketGrid');
-  marketData.forEach(function(m){
-    var card = document.createElement('div');
-    card.className = 'market-card';
-    card.innerHTML =
-      '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
-      '<div class="market-price">'+m.price+'</div>'+
-      '<div class="market-change '+(m.up?'up':'down')+'">'+m.change+' <span style="color:var(--text-dim); font-weight:400;">today</span></div>'+
-      '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(m.seed,m.up)+'" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>';
-    marketGrid.appendChild(card);
-  });
+var marketGrid = document.getElementById('marketGrid');
+marketData.forEach(function(m){
+  var card = document.createElement('div');
+  card.className = 'market-card';
+  card.innerHTML =
+    '<div class="market-row1"><span class="market-symbol">'+m.sym+'</span><span class="market-cat">'+m.cat+'</span></div>'+
+    '<div class="market-price">'+m.price+'</div>'+
+    '<div class="market-change '+(m.up?'up':'down')+'">'+m.change+'</div>'+
+    '<div class="market-spark"><svg viewBox="0 0 220 34" preserveAspectRatio="none"><path d="'+sparkPath(m.seed,m.up)+'" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>';
+  marketGrid.appendChild(card);
+});
 
   /* live clock */
   var clockOut = document.getElementById('clockOut');
